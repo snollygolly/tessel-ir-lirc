@@ -1,0 +1,25 @@
+{
+  "name": "tessel-ir-lirc",
+  "version": "1.0.0",
+  "description": "A project aimed at providing an easy way to lookup codes from LIRC for use with Tessel 2's IR Module.",
+  "main": "index.js",
+  "scripts": {
+		"start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snollygolly/tessel-ir-lirc.git"
+  },
+  "author": "snollygolly",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/snollygolly/tessel-ir-lirc/issues"
+  },
+  "homepage": "https://github.com/snollygolly/tessel-ir-lirc#readme",
+  "dependencies": {
+    "cheerio": "^0.20.0",
+    "co": "^4.6.0",
+    "request-promise": "^2.0.1"
+  }
+}
