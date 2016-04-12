@@ -34,6 +34,7 @@ function* getAllRemotes(oem) {
 		// this is each row, we need the second column
 		const tableLength = $(elem).children("td").length;
 		if (tableLength > 0) {
+			// in the table, get the second column, and then the actual link
 			const remoteName = $(elem).children("td").eq(1).children("a").prop("href");
 			remotes.push(remoteName);
 		}
@@ -42,8 +43,33 @@ function* getAllRemotes(oem) {
 	return remotes;
 }
 
+function searchAllRemotes(needle, haystack) {
+	// initialize the search needle
+	let searchNeedle = needle.toUpperCase();
+	let i = 0;
+	while (i < needle.length) {
+		// set the search pattern
+		const needlePattern = new RegExp(`^${searchNeedle}.*`, "g");
+		// filter through the array
+		const matches = haystack.filter((item) => {
+			return item.match(needlePattern);
+		});
+		if (matches.length > 0) {
+			const match = matches.shift();
+			// the needle (or modified needle) was found in the haystack
+			console.log(`Found ${match} in haystack using ${searchNeedle} as needle`);
+			return match;
+		}
+		searchNeedle = searchNeedle.substr(0, searchNeedle.length - 1);
+		i++;
+	}
+	console.log(`No suitable remote found in OEM listing`);
+	return false;
+}
+
 co(function* send() {
 	const oem = "pioneer";
+	const model = "xxd3132";
 	// first see if you can get the OEM
 	const result = yield getOEMLink(oem);
 	if (result === false) {
@@ -53,6 +79,11 @@ co(function* send() {
 	const listing = yield getAllRemotes(result);
 	if (listing.length === 0) {
 		throw new Error("No remotes found");
+	}
+	// attempt to find the nearest match for this model number
+	const match = searchAllRemotes(model, listing);
+	if (match === false) {
+		throw new Error("No remote matching that model number found");
 	}
 }).catch(onerror);
 
