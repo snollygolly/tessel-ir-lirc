@@ -55,6 +55,7 @@ function searchAllRemotes(needle, haystack) {
 			return item.match(needlePattern);
 		});
 		if (matches.length > 0) {
+			// just give us the first result off the top
 			const match = matches.shift();
 			// the needle (or modified needle) was found in the haystack
 			console.log(`Found ${match} in haystack using ${searchNeedle} as needle`);
@@ -65,6 +66,27 @@ function searchAllRemotes(needle, haystack) {
 	}
 	console.log(`No suitable remote found in OEM listing`);
 	return false;
+}
+
+function* getRemote(oem, model) {
+	// first get the page
+	const rawPage = yield rp(`${LIRC_URL}/${oem}/${model}/`);
+	console.log(`Found /${oem}/${model}/`);
+	return rawPage;
+}
+
+function parseRemote(raw) {
+	// match 2 spaces, then the key, then 1 or more spaces, then the value
+	// for values that are similar to "xxxx    xxxx", do a split and shift/pop
+	const propertyPattern = /^ {2}([\w_]+?)(?: +)(.+)$/;
+	const codePattern = /^ {10}([^ ]+?)(?: +)([^ ]+?)(?: .+)?$/;
+	const rawArr = raw.split("\n");
+	console.log(`Found ${rawArr} lines in remote file`);
+	for (const line of rawArr) {
+		// check for comments on this line, we don't care about these
+		if (line.indexOf("#") === 0) {continue;}
+
+	}
 }
 
 co(function* send() {
@@ -85,6 +107,7 @@ co(function* send() {
 	if (match === false) {
 		throw new Error("No remote matching that model number found");
 	}
+	// fetch the model's raw text page
 }).catch(onerror);
 
 function onerror(err) {
