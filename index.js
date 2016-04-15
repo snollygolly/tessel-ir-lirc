@@ -70,23 +70,55 @@ function searchAllRemotes(needle, haystack) {
 
 function* getRemote(oem, model) {
 	// first get the page
-	const rawPage = yield rp(`${LIRC_URL}/${oem}/${model}/`);
+	console.log(`Requesting ${LIRC_URL}/${oem}/${model}`);
+	const rawPage = yield rp(`${LIRC_URL}/${oem}/${model}`);
 	console.log(`Found /${oem}/${model}/`);
-	return rawPage;
+	const remote = parseRemote(rawPage);
+	const verified = verifyRemote(remote);
+	if (verified === false) {
+		// this remote isn't valid
+		return false;
+	}
+	return remote;
 }
 
 function parseRemote(raw) {
 	// match 2 spaces, then the key, then 1 or more spaces, then the value
 	// for values that are similar to "xxxx    xxxx", do a split and shift/pop
 	const propertyPattern = /^ {2}([\w_]+?)(?: +)(.+)$/;
+	// TODO: this pattern won't picks up two properties, fix that!
 	const codePattern = /^ {10}([^ ]+?)(?: +)([^ ]+?)(?: .+)?$/;
 	const rawArr = raw.split("\n");
-	console.log(`Found ${rawArr} lines in remote file`);
+	const remoteObj = {};
+	console.log(`Found ${rawArr.length} lines in remote file`);
 	for (const line of rawArr) {
 		// check for comments on this line, we don't care about these
 		if (line.indexOf("#") === 0) {continue;}
-
+		// check to see if this is a property value
+		const propertyMatch = propertyPattern.exec(line);
+		if (propertyMatch !== null) {
+			// there's a match, and this is a property
+			// TODO: this doesn't handle two property values, but it needs to
+			remoteObj[propertyMatch[1]] = propertyMatch[2];
+			continue;
+		}
+		// check to see if this is a code value
+		const codeMatch = codePattern.exec(line);
+		if (codeMatch !== null) {
+			// this is a code match
+			// TODO: this doesn't handle two property values, but it needs to
+			remoteObj[codeMatch[1]] = codeMatch[2];
+			continue;
+		}
 	}
+	console.log(`Returning parsed remote object named ${remoteObj.name}`);
+	return remoteObj;
+}
+
+function verifyRemote(remote) {
+	// make sure that the remote has all required properties
+	// TODO: this obviously doesn't work :3
+	return true;
 }
 
 co(function* send() {
@@ -107,7 +139,12 @@ co(function* send() {
 	if (match === false) {
 		throw new Error("No remote matching that model number found");
 	}
-	// fetch the model's raw text page
+	// fetch the parsed remote object
+	const remote = yield getRemote(oem, match);
+	if (remote === false) {
+		// TODO: a more descriptive error would be great here
+		throw new Error("There was a problem with that remote file");
+	}
 }).catch(onerror);
 
 function onerror(err) {
