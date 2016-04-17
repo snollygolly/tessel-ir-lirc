@@ -98,8 +98,16 @@ function parseRemote(raw) {
 		const propertyMatch = propertyPattern.exec(line);
 		if (propertyMatch !== null) {
 			// there's a match, and this is a property
-			// TODO: this doesn't handle two property values, but it needs to
-			remoteObj[propertyMatch[1]] = propertyMatch[2];
+			// see if we can split it
+			const splitMatch = propertyMatch[2].split(" ");
+			// xxxx xxxx would split into 3
+			if (splitMatch.length > 2) {
+				const onVal = splitMatch.shift();
+				const offVal = splitMatch.pop();
+				remoteObj[propertyMatch[1]] = [onVal, offVal];
+			} else {
+				remoteObj[propertyMatch[1]] = propertyMatch[2];
+			}
 			continue;
 		}
 		// check to see if this is a code value
@@ -117,7 +125,20 @@ function parseRemote(raw) {
 
 function verifyRemote(remote) {
 	// make sure that the remote has all required properties
-	// TODO: this obviously doesn't work :3
+	// check to make sure it has a header
+	if (!remote.header) {return false;}
+	// check if it's an array
+	if (remote.header.length < 2) {return false;}
+ 	// check to see if there's a one
+	if (!remote.one) {return false;}
+	// see if it's an array
+	if (remote.one.length < 2) {return false;}
+	// check to see if there's a zero
+	if (!remote.zero) {return false;}
+	// see if it's an array
+	if (remote.zero.length < 2) {return false;}
+	// check to see if there's a length
+	if (!remote.bits) {return false;}
 	return true;
 }
 
@@ -145,6 +166,7 @@ co(function* send() {
 		// TODO: a more descriptive error would be great here
 		throw new Error("There was a problem with that remote file");
 	}
+	console.log(JSON.stringify(remote));
 }).catch(onerror);
 
 function onerror(err) {
