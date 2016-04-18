@@ -84,7 +84,7 @@ function* getRemote(oem, model) {
 
 function parseRemote(raw) {
 	// match 2 spaces, then the key, then 1 or more spaces, then the value
-	// for values that are similar to "xxxx    xxxx", do a split and shift/pop
+	// for values that are similar to "xxxx		xxxx", do a split and shift/pop
 	const propertyPattern = /^ {2}([\w_]+?)(?: +)(.+)$/;
 	// TODO: this pattern won't picks up two properties, fix that!
 	const codePattern = /^ {10}([^ ]+?)(?: +)([^ ]+?)(?: .+)?$/;
@@ -141,6 +141,48 @@ function verifyRemote(remote) {
 	if (!remote.bits) {return false;}
 	return true;
 }
+
+function get16BitsComplement(number) {
+	return number < 0 ? (65536 + number) : number;
+};
+
+function generateBuffer(remote) {
+	const headerBytes = [remote.header[0], get16BitsComplement(remote.header[1] * -1)];
+	const oneOnDuration = remote.one[0];
+	const zeroOnDuration = remote.zero[0];
+	const offDuration = get16BitsComplement(remote.zero[1]);
+	// TODO: figure this out?
+	const repeatDuration = get16BitsComplement(-25700);
+	const bodyLen = remote.bits;
+
+
+	const headerBuf = new Buffer(4);
+	headerBuf.writeUInt16BE(headerBytes[0], 0);
+	headerBuf.writeUInt16BE(headerBytes[1], 2);
+
+	// multiply by 4 b/c we're sending int16s (2 8-byte words) for each duration
+	// and there is both an on and an off duration
+	const bodyBuf = new Buffer(bodyLen * 2 * 2);
+
+	for (let i = 0; i < bodyLen; i++) {
+		// If the next bit is a 1
+		if ((hexValue >> (bodyLen - i - 1)) & 1) {
+			// Write the one ON duration
+			bodyBuf.writeUInt16BE(oneOnDuration, i * 4);
+		} else {
+			// Write the zero ON duration
+			bodyBuf.writeUInt16BE(zeroOnDuration, i * 4);
+		}
+
+		// Write the standard OFF duration
+		bodyBuf.writeUInt16BE(offDuration, (i * 4) + 2);
+
+	}
+	bodyBuf.writeUInt16BE(repeatDuration, bodyBuf.length - 2);
+
+	const packet = Buffer.concat([headerBuf, bodyBuf]);
+	return Buffer.concat([packet, packet, packet]);
+};
 
 co(function* send() {
 	const oem = "pioneer";
