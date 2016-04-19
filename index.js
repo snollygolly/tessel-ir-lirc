@@ -1,10 +1,15 @@
 "use strict";
 
+const Promise = require("bluebird");
 const rp = require("request-promise");
 const cheerio = require("cheerio");
 const co = require("co");
 
 const LIRC_URL = "http://lirc.sourceforge.net/remotes";
+
+// const tessel = require("tessel");
+// const infraredlib = require("ir-attx4");
+// const infrared = Promise.promisifyAll(infraredlib.use(tessel.port["A"]));
 
 function* getOEMLink(oem) {
 	// first get the page
@@ -208,7 +213,8 @@ co(function* send() {
 		// TODO: a more descriptive error would be great here
 		throw new Error("There was a problem with that remote file");
 	}
-	console.log(JSON.stringify(remote));
+	const codeBuffer = generateBuffer(remote);
+	// const result = yield infrared.sendRawSignalAsync(38, codeBuffer);
 }).catch(onerror);
 
 function onerror(err) {
