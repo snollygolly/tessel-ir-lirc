@@ -20,7 +20,7 @@
   "dependencies": {
     "cheerio": "^0.20.0",
     "co": "^4.6.0",
-    "request-promise": "^2.0.1",
-    "tessel": "^0.3.24"
+    "ir-attx4": "^0.2.9",
+    "request-promise": "^2.0.1"
   }
 }
