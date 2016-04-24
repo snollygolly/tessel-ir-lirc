@@ -5,11 +5,17 @@ const rp = require("request-promise");
 const cheerio = require("cheerio");
 const co = require("co");
 
-const LIRC_URL = "http://lirc.sourceforge.net/remotes";
-
 const tessel = require("tessel");
 const infraredlib = require("ir-attx4");
 const infrared = Promise.promisifyAll(infraredlib.use(tessel.port["A"]));
+
+// change these values
+const LIRC_URL = "http://lirc.sourceforge.net/remotes";
+// this is the OEM for your remote
+const oem = "pioneer";
+// this is the model number for your remote
+// NOT FOR YOUR TV/DVD/VCR/8-TRACK, THE REMOTE.
+const model = "xxd3132";
 
 function* getOEMLink(oem) {
 	// first get the page
@@ -151,7 +157,7 @@ function get16BitsComplement(number) {
 	return number < 0 ? (65536 + number) : number;
 };
 
-function generateBuffer(remote) {
+function generateBuffer(remote, code) {
 	const headerBytes = [remote.header[0], get16BitsComplement(remote.header[1] * -1)];
 	const oneOnDuration = remote.one[0];
 	const zeroOnDuration = remote.zero[0];
@@ -159,7 +165,9 @@ function generateBuffer(remote) {
 	// TODO: figure this out?
 	const repeatDuration = get16BitsComplement(-25700);
 	const bodyLen = remote.bits;
-
+	// convert to hex (maybe?)
+	const hexValue = parseInt(code, 16);
+	console.log(`hexValue: ${hexValue}`);
 
 	const headerBuf = new Buffer(4);
 	headerBuf.writeUInt16BE(headerBytes[0], 0);
@@ -190,8 +198,6 @@ function generateBuffer(remote) {
 };
 
 co(function* send() {
-	const oem = "pioneer";
-	const model = "xxd3132";
 	// first see if you can get the OEM
 	const result = yield getOEMLink(oem);
 	if (result === false) {
@@ -213,7 +219,7 @@ co(function* send() {
 		// TODO: a more descriptive error would be great here
 		throw new Error("There was a problem with that remote file");
 	}
-	const codeBuffer = generateBuffer(remote);
+	const codeBuffer = generateBuffer(remote, remote["KEY_POWER"]);
 	const irResult = yield infrared.sendRawSignalAsync(38, codeBuffer);
 }).catch(onerror);
 
