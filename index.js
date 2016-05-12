@@ -194,6 +194,8 @@ function generateBuffer(remote, code) {
 	bodyBuf.writeUInt16BE(repeatDuration, bodyBuf.length - 2);
 
 	const packet = Buffer.concat([headerBuf, bodyBuf]);
+	console.log("packet:");
+	console.log(packet);
 	return Buffer.concat([packet, packet, packet]);
 };
 
